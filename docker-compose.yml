@@ -1,0 +1,230 @@
+version: "3.9"
+
+networks:
+  primary:
+    driver: bridge
+
+volumes:
+  etcd_0:
+    driver: local
+  etcd_1:
+    driver: local
+  etcd_2:
+    driver: local
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx
+    networks:
+      - primary
+    expose:
+      - 8200
+    ports:
+      - 8200:8200
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf
+    tty: true
+    stdin_open: true
+    healthcheck:
+      test: ["CMD", "wget", "-O", "/dev/null", "http://localhost:8200/v1/sys/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  vault_0:
+    image: hashicorp/vault:latest
+    command:
+      - server
+    container_name: vault_0
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: ''
+    networks:
+      - primary
+    expose:
+      - 8200
+      - 8201
+    volumes:
+      - ./config/vault-0.hcl:/vault/config/config.hcl
+    tty: true
+    stdin_open: true
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 1
+      start_period: 60s
+    depends_on:
+      etcd_0:
+        condition: service_healthy
+      etcd_1:
+        condition: service_healthy
+      etcd_2:
+        condition: service_healthy
+
+  vault_1:
+    image: hashicorp/vault:latest
+    command:
+      - server
+    container_name: vault_1
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: ''
+    networks:
+      - primary
+    expose:
+      - 8200
+      - 8201
+    volumes:
+      - ./config/vault-1.hcl:/vault/config/config.hcl
+    tty: true
+    stdin_open: true
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 1
+      start_period: 60s
+    depends_on:
+      etcd_0:
+        condition: service_healthy
+      etcd_1:
+        condition: service_healthy
+      etcd_2:
+        condition: service_healthy
+
+  vault_2:
+    image: hashicorp/vault:latest
+    command:
+      - server
+    container_name: vault_2
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200
+      VAULT_LOCAL_CONFIG: ''
+    networks:
+      - primary
+    expose:
+      - 8200
+      - 8201
+    volumes:
+      - ./config/vault-2.hcl:/vault/config/config.hcl
+    tty: true
+    stdin_open: true
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 60s
+      timeout: 10s
+      retries: 1
+      start_period: 60s
+    depends_on:
+      etcd_0:
+        condition: service_healthy
+      etcd_1:
+        condition: service_healthy
+      etcd_2:
+        condition: service_healthy
+
+  etcd_0:
+    image: bitnami/etcd:latest
+    container_name: etcd_0
+    environment:
+      ALLOW_NONE_AUTHENTICATION: 'yes'
+      ETCD_NAME: 'node0'
+      ETCD_DATA_DIR: '/etcd-data'
+      ETCD_LISTEN_PEER_URLS: 'http://0.0.0.0:2380'
+      ETCD_LISTEN_CLIENT_URLS: 'http://0.0.0.0:2379'
+      ETCD_ADVERTISE_CLIENT_URLS: 'http://etcd_0:2379'
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: 'http://etcd_0:2380'
+      ETCD_INITIAL_CLUSTER_STATE: 'new'
+      ETCD_INITIAL_CLUSTER: 'node0=http://etcd_0:2380,node1=http://etcd_1:2380,node2=http://etcd_2:2380'
+      ETCD_INITIAL_CLUSTER_TOKEN: 'etcd-cluster-0'
+      ETCD_LOG_LEVEL: 'debug'
+    volumes:
+      - etcd_0:/etcd-data
+    networks:
+      - primary
+    expose:
+      - 2379
+      - 2380
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=127.0.0.1:2379", "--user=root:root"]
+      retries: 3
+      interval: 30s
+      timeout: 10s
+      start_period: 2m0s
+
+  etcd_1:
+    image: bitnami/etcd:latest
+    container_name: etcd_1
+    environment:
+      ALLOW_NONE_AUTHENTICATION: 'yes'
+      ETCD_NAME: 'node1'
+      ETCD_DATA_DIR: '/etcd-data'
+      ETCD_LISTEN_PEER_URLS: 'http://0.0.0.0:2380'
+      ETCD_LISTEN_CLIENT_URLS: 'http://0.0.0.0:2379'
+      ETCD_ADVERTISE_CLIENT_URLS: 'http://etcd_1:2379'
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: 'http://etcd_1:2380'
+      ETCD_INITIAL_CLUSTER_STATE: 'new'
+      ETCD_INITIAL_CLUSTER: 'node0=http://etcd_0:2380,node1=http://etcd_1:2380,node2=http://etcd_2:2380'
+      ETCD_INITIAL_CLUSTER_TOKEN: 'etcd-cluster-0'
+      ETCD_LOG_LEVEL: 'debug'
+    volumes:
+      - etcd_1:/etcd-data
+    networks:
+      - primary
+    expose:
+      - 2379
+      - 2380
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=127.0.0.1:2379", "--user=root:root"]
+      retries: 3
+      interval: 30s
+      timeout: 10s
+      start_period: 2m0s
+
+  etcd_2:
+    image: bitnami/etcd:latest
+    container_name: etcd_2
+    environment:
+      ALLOW_NONE_AUTHENTICATION: 'yes'
+      ETCD_NAME: 'node2'
+      ETCD_DATA_DIR: '/etcd-data'
+      ETCD_LISTEN_PEER_URLS: 'http://0.0.0.0:2380'
+      ETCD_LISTEN_CLIENT_URLS: 'http://0.0.0.0:2379'
+      ETCD_ADVERTISE_CLIENT_URLS: 'http://etcd_2:2379'
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: 'http://etcd_2:2380'
+      ETCD_INITIAL_CLUSTER_STATE: 'new'
+      ETCD_INITIAL_CLUSTER: 'node0=http://etcd_0:2380,node1=http://etcd_1:2380,node2=http://etcd_2:2380'
+      ETCD_INITIAL_CLUSTER_TOKEN: 'etcd-cluster-0'
+      ETCD_LOG_LEVEL: 'debug'
+    volumes:
+      - etcd_2:/etcd-data
+    networks:
+      - primary
+    expose:
+      - 2379
+      - 2380
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health", "--endpoints=127.0.0.1:2379", "--user=root:root"]
+      retries: 3
+      interval: 30s
+      timeout: 10s
+      start_period: 2m0s
+
