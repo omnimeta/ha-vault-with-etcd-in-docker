@@ -121,7 +121,7 @@ wait_for_etcd() {
 	# Usage: wait_for_etcd
 
 	TIMEOUT_SECS='300'
-	WAIT_BETWEEN_CHECKS='20'
+	SECS_WAIT_BETWEEN_CHECKS='20'
 	START_TIMESTAMP="$(current_timestamp)"
 	TIMEOUT_TIMESTAMP="$(( START_TIMESTAMP + TIMEOUT_SECS ))"
 
@@ -134,7 +134,7 @@ wait_for_etcd() {
 			echo 'View logs for etcd: `docker-compose logs etcd_0 etcd_1 etcd_2`'
 			return 1
 		fi
-		sleep "${WAIT_BETWEEN_CHECKS}"
+		sleep "${SECS_WAIT_BETWEEN_CHECKS}"
 	done
 }
 
@@ -168,7 +168,7 @@ wait_for_nginx() {
 	# Usage: wait_for_nginx
 
 	TIMEOUT_SECS='300'
-	WAIT_BETWEEN_CHECKS='10'
+	SECS_WAIT_BETWEEN_CHECKS='10'
 	START_TIMESTAMP="$(current_timestamp)"
 	TIMEOUT_TIMESTAMP="$(( START_TIMESTAMP + TIMEOUT_SECS ))"
 
@@ -181,7 +181,7 @@ wait_for_nginx() {
 			echo 'View logs for nginx: `docker-compose logs nginx`'
 			return 1
 		fi
-		sleep "${WAIT_BETWEEN_CHECKS}"
+		sleep "${SECS_WAIT_BETWEEN_CHECKS}"
 	done
 }
 
@@ -298,7 +298,6 @@ start_vault_cluster_leader() {
 	fi
 
 	vault_cluster_status "${INSTANCE_INDEX}" "${INIT_RESPONSE_FILE}"
-	printf '\n'
 }
 
 start_vault_nonleader() {
@@ -320,7 +319,6 @@ start_vault_nonleader() {
 	fi
 
 	vault_cluster_status "${INSTANCE_INDEX}" "${INIT_RESPONSE_FILE}"
-	printf '\n'
 }
 
 
@@ -336,8 +334,19 @@ check_dependencies \
 	&& start_nginx \
 	|| return 1
 
+docker-compose ps
+
 VAULT_ADDR='http://127.0.0.1:8200' # port 8200 from nginx is exposed on the host machine
 export VAULT_ADDR
 
 VAULT_TOKEN="$(initial_root_token "${INIT_RESPONSE_JSON_PATH}")"
 export VAULT_TOKEN
+
+printf '\n'
+echo 'The environment variables VAULT_ADDR and VAULT_TOKEN have been set in your shell'
+echo 'VAULT_ADDR targets an NGINX load balancer which distributes requests to your Vault instances'
+echo 'You can now run vault commands against the cluster if you have the Vault CLI installed'
+echo "You can also visit ${VAULT_ADDR} to view the Vault Web UI"
+echo 'To get the initial root token: `echo ${VAULT_TOKEN}`'
+echo "To get the unseal key: \`jq '.unseal_keys_b64[0]' < ${INIT_RESPONSE_FILE}\`"
+printf '\n'

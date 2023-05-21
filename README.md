@@ -53,7 +53,7 @@ On many modern shells, including bash and zsh, you can also use the `source` com
 source start.sh
 ```
 
-* This will spin up three Etcd instances as part of a highly available Etcd cluster, and then will start, initialise, and unseal three Vault instances, using the Etcd cluster as a storage backend, to form a highly available Vault cluster.
+This will spin up three Etcd instances as part of a highly available Etcd cluster, and then will start, initialise, and unseal three Vault instances, using the Etcd cluster as a storage backend, to form a highly available Vault cluster.
 
 The following environment variables will be set in your current shell:
 
